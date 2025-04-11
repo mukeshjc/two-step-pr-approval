@@ -15,9 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Setup GitHub CLI
-        uses: cli/setup-gh@v1
         
       - name: Get PR details
         id: pr-details
