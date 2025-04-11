@@ -76,7 +76,15 @@ jobs:
             const statusResult = JSON.parse('${{ steps.check-status.outputs.result }}');
             const prCreator = statusResult.prCreator;
             
-            try {
+            // Fetch PR details again to confirm state
+            const pr = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pr_number
+            });
+
+            if (!pr.data.draft) {
+              try {
                 console.log('Attempting direct draft conversion for PR:', pr_number);
                 const result = await github.rest.pulls.update({
                   owner,
@@ -85,17 +93,20 @@ jobs:
                   draft: true
                 });
                 console.log('Draft conversion response:', JSON.stringify(result, null, 2));
-            } catch (error) {
+              } catch (error) {
                 console.error('Error converting PR to draft:', error);
-            }
+              }
 
-            // Add an internal review message
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: pr_number,
-              body: `This PR has been automatically converted to draft status pending internal team review. Once approved by another team member, it will be made available for wider review.`
-            });
+              // Add an internal review message
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr_number,
+                body: `This PR has been automatically converted to draft status pending internal team review. Once approved by another team member, it will be made available for wider review.`
+              });
+            } else {
+              console.log('PR is already in draft mode.');
+            }
 
       - name: Apply internal-approval label if approved by team (for team PRs)
         if: ${{ fromJSON(steps.check-status.outputs.result).isTeamMember && fromJSON(steps.check-status.outputs.result).hasInternalApproval && !fromJSON(steps.check-status.outputs.result).hasInternalApprovalLabel }}
