@@ -12,6 +12,8 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
     steps:
       - name: Check PR status and team membership
         id: check-status
