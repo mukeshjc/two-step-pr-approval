@@ -18,6 +18,8 @@ jobs:
         
       - name: Get PR details
         id: pr-details
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           # Get PR creator
           PR_CREATOR=$(gh pr view ${{ github.event.pull_request.number }} --json author --jq .author.login)
@@ -55,6 +57,8 @@ jobs:
           echo "HAS_TEAM_APPROVAL=$HAS_TEAM_APPROVAL" >> $GITHUB_OUTPUT
           
       - name: Debug Info
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           echo "PR Creator: ${{ steps.pr-details.outputs.PR_CREATOR }}"
           echo "Is Team Member: ${{ steps.pr-details.outputs.IS_TEAM_MEMBER }}"
@@ -63,18 +67,24 @@ jobs:
           echo "Has Team Approval: ${{ steps.pr-details.outputs.HAS_TEAM_APPROVAL }}"
       
       - name: Convert to draft if team member PR without approval
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         if: ${{ steps.pr-details.outputs.IS_TEAM_MEMBER == 'true' && steps.pr-details.outputs.HAS_APPROVAL_LABEL == 'false' && steps.pr-details.outputs.IS_DRAFT == 'false' }}
         run: |
           gh pr ready --undo ${{ github.event.pull_request.number }}
           gh pr comment ${{ github.event.pull_request.number }} --body "This PR by team member @${{ steps.pr-details.outputs.PR_CREATOR }} has been automatically converted to draft status pending internal team review. Once approved by another team member, it will be made available for wider review."
       
       - name: Add approval label if approved by team member
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         if: ${{ steps.pr-details.outputs.IS_TEAM_MEMBER == 'true' && steps.pr-details.outputs.HAS_TEAM_APPROVAL == 'true' && steps.pr-details.outputs.HAS_APPROVAL_LABEL == 'false' }}
         run: |
           gh pr edit ${{ github.event.pull_request.number }} --add-label "internal-approval"
           gh pr comment ${{ github.event.pull_request.number }} --body "Internal team approval granted! This PR is now ready for wider review."
       
       - name: Convert from draft to ready when approved
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         if: ${{ steps.pr-details.outputs.IS_TEAM_MEMBER == 'true' && steps.pr-details.outputs.HAS_APPROVAL_LABEL == 'true' && steps.pr-details.outputs.IS_DRAFT == 'true' }}
         run: |
           gh pr ready ${{ github.event.pull_request.number }}
